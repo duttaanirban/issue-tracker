@@ -1,4 +1,4 @@
-export default function IssueList({ issues, filters, setFilters, pagination, setPagination }) {
+export default function IssueList({ issues, filters, setFilters, pagination, setPagination, selectedIssueId, onSelectIssue }) {
   return (
     <div className="space-y-4 p-4 max-w-7xl mx-auto">
       {/* Responsive Filter Bar */}
@@ -44,7 +44,12 @@ export default function IssueList({ issues, filters, setFilters, pagination, set
           <p className="p-6 text-center text-sm text-slate-500">No issues found.</p>
         ) : (
           issues.map((issue) => (
-            <div key={issue.id} className="p-4 hover:bg-slate-50 flex flex-col sm:flex-row justify-between gap-3">
+            <button
+              type="button"
+              key={issue.id}
+              onClick={() => onSelectIssue(issue.id)}
+              className={`w-full p-4 text-left hover:bg-slate-50 flex flex-col sm:flex-row justify-between gap-3 ${selectedIssueId === issue.id ? 'bg-blue-50' : ''}`}
+            >
               <div>
                 <div className="flex items-center gap-2">
                   <span className={`text-xs px-2 py-0.5 rounded font-semibold ${issue.type === 'BUG' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
@@ -60,7 +65,7 @@ export default function IssueList({ issues, filters, setFilters, pagination, set
                   {issue.status}
                 </span>
               </div>
-            </div>
+            </button>
           ))
         )}
       </div>

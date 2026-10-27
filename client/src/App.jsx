@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchIssues } from './services/api'
 import IssueList from './components/issues/IssueList'
+import IssueDetails from './components/issues/IssueDetails'
 import './App.css'
 
 const initialFilters = {
@@ -22,6 +23,7 @@ function App() {
   const [pagination, setPagination] = useState(initialPagination)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selectedIssueId, setSelectedIssueId] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -87,13 +89,25 @@ function App() {
           Loading issues...
         </p>
       ) : (
-        <IssueList
-          issues={issues}
-          filters={filters}
-          setFilters={updateFilters}
-          pagination={pagination}
-          setPagination={setPagination}
-        />
+        <>
+          <IssueList
+            issues={issues}
+            filters={filters}
+            setFilters={updateFilters}
+            pagination={pagination}
+            setPagination={setPagination}
+            selectedIssueId={selectedIssueId}
+            onSelectIssue={setSelectedIssueId}
+          />
+          {selectedIssueId && (
+            <div className="mx-auto mt-4 max-w-7xl px-4">
+              <IssueDetails
+                issueId={selectedIssueId}
+                onClose={() => setSelectedIssueId(null)}
+              />
+            </div>
+          )}
+        </>
       )}
     </main>
   )
