@@ -69,6 +69,12 @@ function App() {
     setPagination((current) => ({ ...current, page: 1 }))
   }
 
+  function updateIssueInList(updatedIssue) {
+    setIssues((current) => current.map((issue) => (
+      issue.id === updatedIssue.id ? { ...issue, ...updatedIssue } : issue
+    )))
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 py-8">
       <header className="mx-auto mb-4 max-w-7xl px-4">
@@ -104,6 +110,7 @@ function App() {
               <IssueDetails
                 issueId={selectedIssueId}
                 onClose={() => setSelectedIssueId(null)}
+                onUpdated={updateIssueInList}
               />
             </div>
           )}

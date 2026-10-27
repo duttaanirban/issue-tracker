@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react'
-import { fetchIssueById } from '../../services/api'
+import { fetchIssueById, updateIssue } from '../../services/api'
 import HistoryTimeline from './HistoryTimeline'
 
-export default function IssueDetails({ issueId, onClose }) {
+const workflowTransitions = {
+  OPEN: ['IN_PROGRESS'],
+  IN_PROGRESS: ['IN_REVIEW'],
+  IN_REVIEW: ['CLOSED'],
+  CLOSED: ['OPEN'],
+}
+
+export default function IssueDetails({ issueId, onClose, onUpdated }) {
   const [issue, setIssue] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [updating, setUpdating] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -32,6 +40,26 @@ export default function IssueDetails({ issueId, onClose }) {
       active = false
     }
   }, [issueId])
+
+  async function changeStatus(status) {
+    if (!issue) return
+
+    setUpdating(true)
+    setError('')
+
+    try {
+      const response = await updateIssue(issue.id, {
+        status,
+        userId: issue.reporterId,
+      })
+      setIssue(response.data)
+      onUpdated(response.data)
+    } catch (requestError) {
+      setError(requestError.response?.data?.error || 'Unable to update issue status.')
+    } finally {
+      setUpdating(false)
+    }
+  }
 
   return (
     <aside className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
@@ -68,6 +96,24 @@ export default function IssueDetails({ issueId, onClose }) {
           </div>
 
           <p className="whitespace-pre-wrap text-sm leading-6 text-slate-600">{issue.description}</p>
+
+          <div className="rounded-md border border-slate-100 bg-slate-50 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Workflow action</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-slate-600">Move to:</span>
+              {(workflowTransitions[issue.status] || []).map((status) => (
+                <button
+                  type="button"
+                  key={status}
+                  disabled={updating}
+                  onClick={() => changeStatus(status)}
+                  className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {updating ? 'Updating...' : status}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <dl className="grid gap-3 border-y border-slate-100 py-4 text-sm sm:grid-cols-2">
             <div>
