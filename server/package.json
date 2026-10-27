@@ -1,0 +1,29 @@
+{
+  "name": "issue-tracker-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+  "start": "node index.js",
+  "dev": "nodemon index.js",
+  "db:push": "prisma db push",
+  "db:seed": "node prisma/seed.js",
+  "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --detectOpenHandles"
+},
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.3.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2",
+    "nodemon": "^3.1.14",
+    "prisma": "^6.19.3",
+    "supertest": "^7.3.1"
+  }
+}
