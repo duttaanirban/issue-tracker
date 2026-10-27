@@ -32,6 +32,33 @@ describe('Backend Workflow & History Tests', () => {
     await prisma.$disconnect();
   });
 
+  test('0. Creates an issue with valid data', async () => {
+    const res = await request(app)
+      .post('/api/issues')
+      .send({
+        title: 'Created from API',
+        description: 'Issue creation endpoint test',
+        type: 'BUG',
+        priority: 'HIGH',
+        projectId: demoProject.id,
+        reporterId: demoUser.id,
+      });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.title).toBe('Created from API');
+    expect(res.body.status).toBe('OPEN');
+    expect(res.body.priority).toBe('HIGH');
+  });
+
+  test('0b. Rejects invalid issue data', async () => {
+    const res = await request(app)
+      .post('/api/issues')
+      .send({ title: '', projectId: 'not-a-uuid' });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('Invalid issue data');
+  });
+
   test('1. Valid transition: OPEN -> IN_PROGRESS succeeds', async () => {
     const res = await request(app)
       .patch(`/api/issues/${demoIssue.id}`)

@@ -1,9 +1,42 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { z } from 'zod';
 import { updateIssueService } from '../services/issueService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+const createIssueSchema = z.object({
+  title: z.string().trim().min(1, 'title is required').max(200),
+  description: z.string().trim().min(1, 'description is required'),
+  type: z.enum(['BUG', 'TASK']).optional(),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+  labels: z.array(z.string().trim().min(1)).optional(),
+  projectId: z.uuid('projectId must be a valid UUID'),
+  reporterId: z.uuid('reporterId must be a valid UUID'),
+  assigneeId: z.uuid('assigneeId must be a valid UUID').nullable().optional(),
+});
+
+// POST /api/issues (Create Issue)
+router.post('/', async (req, res, next) => {
+  const parsed = createIssueSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid issue data',
+      details: parsed.error.issues.map(({ path, message }) => ({ path, message })),
+    });
+  }
+
+  try {
+    const issue = await prisma.issue.create({
+      data: parsed.data,
+      include: { assignee: true, reporter: true },
+    });
+    res.status(201).json(issue);
+  } catch (error) {
+    next(error);
+  }
+});
 
 // GET /api/issues (Paginated, Filtered, Searched)
 router.get('/', async (req, res, next) => {
