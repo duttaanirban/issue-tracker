@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, CircleDot, Clock3, LayoutDashboard } from 'l
 import { fetchIssues } from './services/api'
 import IssueList from './components/issues/IssueList'
 import IssueDetails from './components/issues/IssueDetails'
+import CreateIssueModal from './components/issues/CreateIssueModal'
 import './App.css'
 
 const initialFilters = {
@@ -25,6 +26,8 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedIssueId, setSelectedIssueId] = useState(null)
+  const [showCreateIssue, setShowCreateIssue] = useState(false)
+  const [refreshToken, setRefreshToken] = useState(0)
 
   useEffect(() => {
     let active = true
@@ -61,7 +64,7 @@ function App() {
     return () => {
       active = false
     }
-  }, [filters, pagination.page, pagination.limit])
+  }, [filters, pagination.page, pagination.limit, refreshToken])
 
   function updateFilters(update) {
     setFilters((current) => (
@@ -74,6 +77,12 @@ function App() {
     setIssues((current) => current.map((issue) => (
       issue.id === updatedIssue.id ? { ...issue, ...updatedIssue } : issue
     )))
+  }
+
+  function handleIssueCreated(issue) {
+    setSelectedIssueId(issue.id)
+    setPagination((current) => ({ ...current, page: 1 }))
+    setRefreshToken((current) => current + 1)
   }
 
   const metrics = [
@@ -103,7 +112,7 @@ function App() {
             <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Good morning, Anirban</h1>
             <p className="mt-2 text-sm text-slate-500">Stay on top of delivery and keep every issue moving forward.</p>
           </div>
-          <button type="button" className="w-fit rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700">
+          <button type="button" onClick={() => setShowCreateIssue(true)} className="w-fit rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700">
             + New issue
           </button>
         </div>
@@ -147,6 +156,14 @@ function App() {
           </>
         )}
       </div>
+      {showCreateIssue && (
+        <CreateIssueModal
+          projectId={issues[0]?.projectId}
+          reporterId={issues[0]?.reporterId}
+          onClose={() => setShowCreateIssue(false)}
+          onCreated={handleIssueCreated}
+        />
+      )}
     </main>
   )
 }
