@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, CircleDot, Clock3, LayoutDashboard } from 'l
 import { fetchIssues } from './services/api'
 import IssueList from './components/issues/IssueList'
 import IssueDetails from './components/issues/IssueDetails'
+import PageSkeleton from './components/PageSkeleton'
 import CreateIssueModal from './components/issues/CreateIssueModal'
 import './App.css'
 
@@ -94,18 +95,22 @@ function App() {
 
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-slate-900">
-      <header className="border-b border-slate-200/80 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <p className='text-lg font-bold '>ISSUE-TRACKER</p>
-          </div>
-          <div className="hidden items-center gap-3 sm:flex">
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-xs font-bold text-white">AN</div>
-          </div>
-        </div>
-      </header>
+      {loading ? (
+        <PageSkeleton />
+      ) : (
+        <>
+          <header className="border-b border-slate-200/80 bg-white">
+            <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+              <div className="flex items-center gap-3">
+                <p className="text-lg font-bold">ISSUE-TRACKER</p>
+              </div>
+              <div className="hidden items-center gap-3 sm:flex">
+                <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-xs font-bold text-white">AN</div>
+              </div>
+            </div>
+          </header>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">Workspace overview</p>
@@ -135,27 +140,23 @@ function App() {
           </p>
         )}
 
-        {loading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">Loading your workspace...</div>
-        ) : (
-          <>
-            <IssueList
-              issues={issues}
-              filters={filters}
-              setFilters={updateFilters}
-              pagination={pagination}
-              setPagination={setPagination}
-              selectedIssueId={selectedIssueId}
-              onSelectIssue={setSelectedIssueId}
-            />
-            {selectedIssueId && (
-              <div className="mt-6">
-                <IssueDetails issueId={selectedIssueId} onClose={() => setSelectedIssueId(null)} onUpdated={updateIssueInList} />
-              </div>
-            )}
-          </>
-        )}
-      </div>
+          <IssueList
+            issues={issues}
+            filters={filters}
+            setFilters={updateFilters}
+            pagination={pagination}
+            setPagination={setPagination}
+            selectedIssueId={selectedIssueId}
+            onSelectIssue={setSelectedIssueId}
+          />
+          {selectedIssueId && (
+            <div className="mt-6">
+              <IssueDetails issueId={selectedIssueId} onClose={() => setSelectedIssueId(null)} onUpdated={updateIssueInList} />
+            </div>
+          )}
+          </div>
+        </>
+      )}
       {showCreateIssue && (
         <CreateIssueModal
           projectId={issues[0]?.projectId}
