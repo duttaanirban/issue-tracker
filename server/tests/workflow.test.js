@@ -29,6 +29,12 @@ describe('Backend Workflow & History Tests', () => {
   });
 
   afterAll(async () => {
+    await prisma.issueHistory.deleteMany({ where: { issue: { projectId: demoProject.id } } });
+    await prisma.comment.deleteMany({ where: { issue: { projectId: demoProject.id } } });
+    await prisma.issue.deleteMany({ where: { projectId: demoProject.id } });
+    await prisma.projectMember.deleteMany({ where: { projectId: demoProject.id } });
+    await prisma.project.delete({ where: { id: demoProject.id } });
+    await prisma.user.delete({ where: { id: demoUser.id } });
     await prisma.$disconnect();
   });
 

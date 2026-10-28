@@ -57,5 +57,8 @@ export async function updateIssueService(issueId, userId, payload) {
         history: { include: { changedBy: true }, orderBy: { createdAt: 'desc' } }
       }
     });
+  }, {
+    maxWait: 10000,
+    timeout: 15000
   });
 }
