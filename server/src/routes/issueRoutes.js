@@ -22,14 +22,48 @@ const createCommentSchema = z.object({
   authorId: z.uuid('authorId must be a valid UUID'),
 });
 
+const uuidSchema = z.uuid('must be a valid UUID');
+
+const issueIdParamsSchema = z.object({
+  id: uuidSchema,
+});
+
+const listIssuesQuerySchema = z.object({
+  status: z.enum(['OPEN', 'IN_PROGRESS', 'IN_REVIEW', 'CLOSED']).optional(),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+  assigneeId: uuidSchema.optional(),
+  search: z.string().trim().max(200).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+});
+
+const updateIssueSchema = z.object({
+  title: z.string().trim().min(1).max(200).optional(),
+  description: z.string().trim().min(1).optional(),
+  type: z.enum(['BUG', 'TASK']).optional(),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+  status: z.enum(['OPEN', 'IN_PROGRESS', 'IN_REVIEW', 'CLOSED']).optional(),
+  labels: z.array(z.string().trim().min(1)).optional(),
+  assigneeId: uuidSchema.nullable().optional(),
+}).strict().refine((value) => Object.keys(value).length > 0, {
+  message: 'At least one issue field is required',
+});
+
+function validationError(res, message, issues) {
+  return res.status(400).json({
+    error: message,
+    details: issues.map(({ path, message: issueMessage }) => ({
+      path,
+      message: issueMessage,
+    })),
+  });
+}
+
 // POST /api/issues (Create Issue)
 router.post('/', async (req, res, next) => {
   const parsed = createIssueSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({
-      error: 'Invalid issue data',
-      details: parsed.error.issues.map(({ path, message }) => ({ path, message })),
-    });
+    return validationError(res, 'Invalid issue data', parsed.error.issues);
   }
 
   try {
@@ -45,12 +79,14 @@ router.post('/', async (req, res, next) => {
 
 // POST /api/issues/:id/comments (Create Comment)
 router.post('/:id/comments', async (req, res, next) => {
+  const params = issueIdParamsSchema.safeParse(req.params);
+  if (!params.success) {
+    return validationError(res, 'Invalid issue ID', params.error.issues);
+  }
+
   const parsed = createCommentSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({
-      error: 'Invalid comment data',
-      details: parsed.error.issues.map(({ path, message }) => ({ path, message })),
-    });
+    return validationError(res, 'Invalid comment data', parsed.error.issues);
   }
 
   try {
@@ -58,7 +94,7 @@ router.post('/:id/comments', async (req, res, next) => {
       data: {
         content: parsed.data.content,
         authorId: parsed.data.authorId,
-        issueId: req.params.id,
+        issueId: params.data.id,
       },
       include: { author: true },
     });
@@ -70,9 +106,14 @@ router.post('/:id/comments', async (req, res, next) => {
 
 // GET /api/issues (Paginated, Filtered, Searched)
 router.get('/', async (req, res, next) => {
+  const parsedQuery = listIssuesQuerySchema.safeParse(req.query);
+  if (!parsedQuery.success) {
+    return validationError(res, 'Invalid issue filters', parsedQuery.error.issues);
+  }
+
   try {
-    const { status, priority, assigneeId, search, page = 1, limit = 10 } = req.query;
-    const skip = (Number(page) - 1) * Number(limit);
+    const { status, priority, assigneeId, search, page, limit } = parsedQuery.data;
+    const skip = (page - 1) * limit;
 
     const where = {
       ...(status && { status }),
@@ -90,14 +131,14 @@ router.get('/', async (req, res, next) => {
       prisma.issue.findMany({
         where,
         skip,
-        take: Number(limit),
+        take: limit,
         include: { assignee: true, reporter: true },
         orderBy: { updatedAt: 'desc' },
       }),
       prisma.issue.count({ where }),
     ]);
 
-    res.json({ issues, total, page: Number(page), totalPages: Math.ceil(total / Number(limit)) });
+    res.json({ issues, total, page, totalPages: Math.ceil(total / limit) });
   } catch (error) {
     next(error);
   }
@@ -105,9 +146,14 @@ router.get('/', async (req, res, next) => {
 
 // GET /api/issues/:id (With History and Comments)
 router.get('/:id', async (req, res, next) => {
+  const params = issueIdParamsSchema.safeParse(req.params);
+  if (!params.success) {
+    return validationError(res, 'Invalid issue ID', params.error.issues);
+  }
+
   try {
     const issue = await prisma.issue.findUnique({
-      where: { id: req.params.id },
+      where: { id: params.data.id },
       include: {
         assignee: true,
         reporter: true,
@@ -124,11 +170,24 @@ router.get('/:id', async (req, res, next) => {
 
 // PATCH /api/issues/:id (Update Issue & Server-Enforced Workflow)
 router.patch('/:id', async (req, res, next) => {
+  const params = issueIdParamsSchema.safeParse(req.params);
+  if (!params.success) {
+    return validationError(res, 'Invalid issue ID', params.error.issues);
+  }
+
   try {
     const { userId, ...payload } = req.body;
-    if (!userId) return res.status(400).json({ error: 'userId is required to track updates' });
+    const actor = uuidSchema.safeParse(userId);
+    if (!actor.success) {
+      return validationError(res, 'Invalid userId', actor.error.issues);
+    }
 
-    const updated = await updateIssueService(req.params.id, userId, payload);
+    const parsedPayload = updateIssueSchema.safeParse(payload);
+    if (!parsedPayload.success) {
+      return validationError(res, 'Invalid issue update', parsedPayload.error.issues);
+    }
+
+    const updated = await updateIssueService(params.data.id, actor.data, parsedPayload.data);
     res.json(updated);
   } catch (error) {
     next(error);
