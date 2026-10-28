@@ -88,17 +88,9 @@ function App() {
       <header className="border-b border-slate-200/80 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-200">
-              <LayoutDashboard size={20} />
-            </div>
-            <div>
-              <p className="text-sm font-bold tracking-tight text-slate-900">Orbit</p>
-              <p className="text-xs text-slate-500">Issue workspace</p>
-            </div>
+            <p className='text-lg font-bold '>ISSUE-TRACKER</p>
           </div>
           <div className="hidden items-center gap-3 sm:flex">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="text-xs font-medium text-slate-500">System operational</span>
             <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-xs font-bold text-white">AN</div>
           </div>
         </div>

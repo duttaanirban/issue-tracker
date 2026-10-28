@@ -17,6 +17,11 @@ const createIssueSchema = z.object({
   assigneeId: z.uuid('assigneeId must be a valid UUID').nullable().optional(),
 });
 
+const createCommentSchema = z.object({
+  content: z.string().trim().min(1, 'content is required').max(2000),
+  authorId: z.uuid('authorId must be a valid UUID'),
+});
+
 // POST /api/issues (Create Issue)
 router.post('/', async (req, res, next) => {
   const parsed = createIssueSchema.safeParse(req.body);
@@ -33,6 +38,31 @@ router.post('/', async (req, res, next) => {
       include: { assignee: true, reporter: true },
     });
     res.status(201).json(issue);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/issues/:id/comments (Create Comment)
+router.post('/:id/comments', async (req, res, next) => {
+  const parsed = createCommentSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid comment data',
+      details: parsed.error.issues.map(({ path, message }) => ({ path, message })),
+    });
+  }
+
+  try {
+    const comment = await prisma.comment.create({
+      data: {
+        content: parsed.data.content,
+        authorId: parsed.data.authorId,
+        issueId: req.params.id,
+      },
+      include: { author: true },
+    });
+    res.status(201).json(comment);
   } catch (error) {
     next(error);
   }

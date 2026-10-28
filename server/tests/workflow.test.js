@@ -59,6 +59,19 @@ describe('Backend Workflow & History Tests', () => {
     expect(res.body.error).toBe('Invalid issue data');
   });
 
+  test('0c. Adds a comment to an issue', async () => {
+    const res = await request(app)
+      .post(`/api/issues/${demoIssue.id}/comments`)
+      .send({
+        content: 'This is a useful update.',
+        authorId: demoUser.id,
+      });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.content).toBe('This is a useful update.');
+    expect(res.body.author.id).toBe(demoUser.id);
+  });
+
   test('1. Valid transition: OPEN -> IN_PROGRESS succeeds', async () => {
     const res = await request(app)
       .patch(`/api/issues/${demoIssue.id}`)

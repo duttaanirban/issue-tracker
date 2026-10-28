@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ArrowUpRight, CalendarDays, CircleUserRound, X } from 'lucide-react'
-import { fetchIssueById, updateIssue } from '../../services/api'
+import { ArrowUpRight, CalendarDays, CircleUserRound, MessageSquare, Send, X } from 'lucide-react'
+import { createComment, fetchIssueById, updateIssue } from '../../services/api'
 import HistoryTimeline from './HistoryTimeline'
 
 const workflowTransitions = {
@@ -14,6 +14,8 @@ export default function IssueDetails({ issueId, onClose, onUpdated }) {
   const [issue, setIssue] = useState(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
+  const [commentText, setCommentText] = useState('')
+  const [commenting, setCommenting] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -59,6 +61,36 @@ export default function IssueDetails({ issueId, onClose, onUpdated }) {
       setError(requestError.response?.data?.error || 'Unable to update issue status.')
     } finally {
       setUpdating(false)
+    }
+  }
+
+  async function submitComment(event) {
+    event.preventDefault()
+    if (!issue || !commentText.trim()) return
+
+    setCommenting(true)
+    setError('')
+
+    try {
+      const response = await createComment(issue.id, {
+        content: commentText.trim(),
+        authorId: issue.reporterId,
+      })
+      setIssue((current) => ({
+        ...current,
+        comments: [...(current.comments || []), response.data],
+      }))
+      setCommentText('')
+    } catch (requestError) {
+      const details = requestError.response?.data?.details
+      const detailMessage = details?.map(({ message }) => message).join(', ')
+      setError(
+        detailMessage
+          ? `Unable to add comment: ${detailMessage}`
+          : requestError.response?.data?.error || 'Unable to add comment.',
+      )
+    } finally {
+      setCommenting(false)
     }
   }
 
@@ -139,6 +171,52 @@ export default function IssueDetails({ issueId, onClose, onUpdated }) {
           </dl>
 
           <HistoryTimeline history={issue.history} />
+
+          <section className="border-t border-slate-100 pt-5">
+            <div className="mb-4 flex items-center gap-2">
+              <MessageSquare size={17} className="text-indigo-600" />
+              <div>
+                <h4 className="text-sm font-bold text-slate-900">Discussion</h4>
+                <p className="text-xs text-slate-500">{issue.comments?.length || 0} comments</p>
+              </div>
+            </div>
+
+            {issue.comments?.length > 0 && (
+              <div className="mb-4 space-y-3">
+                {issue.comments.map((comment) => (
+                  <article key={comment.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-semibold text-slate-700">{comment.author?.name || 'User'}</p>
+                      <time className="text-[10px] text-slate-400">
+                        {new Date(comment.createdAt).toLocaleString()}
+                      </time>
+                    </div>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-5 text-slate-600">{comment.content}</p>
+                  </article>
+                ))}
+              </div>
+            )}
+
+            <form onSubmit={submitComment} className="flex flex-col gap-2 sm:flex-row">
+              <label className="sr-only" htmlFor="issue-comment">Add a comment</label>
+              <input
+                id="issue-comment"
+                value={commentText}
+                onChange={(event) => setCommentText(event.target.value)}
+                placeholder="Share an update..."
+                maxLength={2000}
+                className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+              />
+              <button
+                type="submit"
+                disabled={commenting || !commentText.trim()}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Send size={15} />
+                {commenting ? 'Posting...' : 'Comment'}
+              </button>
+            </form>
+          </section>
         </div>
       )}
     </aside>
